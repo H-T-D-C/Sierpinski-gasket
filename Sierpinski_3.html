@@ -172,6 +172,15 @@
             <input type="number" id="iterations" value="10000" step="1000" min="1">
             <button id="btn-add">実行</button>
         </div>
+        <div class="control-group">
+            <label for="load-reduction">負荷軽減:</label>
+            <select id="load-reduction">
+                <option value="off">OFF（全点描画）</option>
+                <option value="low">低（最大50万点）</option>
+                <option value="medium" selected>中（最大10万点）</option>
+                <option value="high">高（最大2万点）</option>
+            </select>
+        </div>
     </div>
 
     <div class="canvas-container" id="canvas-container">
@@ -210,6 +219,7 @@
         const btnReset = document.getElementById('btn-reset');
         const btnAdd = document.getElementById('btn-add');
         const speedSelect = document.getElementById('speed');
+        const loadReductionSelect = document.getElementById('load-reduction');
         const inputIterations = document.getElementById('iterations');
         const pointCountDisplay = document.getElementById('point-count');
         const visibleCountDisplay = document.getElementById('visible-count');
@@ -222,7 +232,13 @@
         const POINT_SIZE = 1.2;
         
         // 負荷軽減のための設定
-        const MAX_VISIBLE_POINTS = 100000; // 描画する最大点数
+        // 負荷軽減レベル: off, low, medium, high
+        const LOAD_REDUCTION_LEVELS = {
+            off: Infinity,      // 全点描画（制限なし）
+            low: 500000,        // 最大50万点
+            medium: 100000,     // 最大10万点
+            high: 20000         // 最大2万点
+        };
         const CHUNK_SIZE = 10000; // 点データを分割管理するチャンクサイズ
         // Note: 点データはオブジェクト配列として管理。大規模データ（100万点以上）では
         // Float32Arrayを使用した型付き配列への移行を検討。現在の実装では
@@ -347,7 +363,9 @@
             const drawSize = POINT_SIZE / scale;
             
             // 負荷軽減のための間引き率を計算
-            const skipRate = Math.max(1, Math.floor(totalPoints / MAX_VISIBLE_POINTS));
+            const loadReductionLevel = loadReductionSelect.value;
+            const maxVisiblePoints = LOAD_REDUCTION_LEVELS[loadReductionLevel];
+            const skipRate = maxVisiblePoints === Infinity ? 1 : Math.max(1, Math.floor(totalPoints / maxVisiblePoints));
 
             // 全チャンクを走査
             let pointIndex = 0;
@@ -458,6 +476,11 @@
                     updateStatus(isRunning ? '演算中...' : '停止中');
                 }
             }
+        });
+
+        // 負荷軽減レベル変更時に再描画
+        loadReductionSelect.addEventListener('change', () => {
+            draw();
         });
 
         // マウスドラッグで移動（Pan）
