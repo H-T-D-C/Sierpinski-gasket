@@ -224,6 +224,9 @@
         // 負荷軽減のための設定
         const MAX_VISIBLE_POINTS = 100000; // 描画する最大点数
         const CHUNK_SIZE = 10000; // 点データを分割管理するチャンクサイズ
+        // Note: 点データはオブジェクト配列として管理。大規模データ（100万点以上）では
+        // Float32Arrayを使用した型付き配列への移行を検討。現在の実装では
+        // チャンク分割と間引き描画により、実用的なパフォーマンスを確保。
 
         // 三角形の頂点データ（論理座標）
         const vertices = [
@@ -237,7 +240,9 @@
         let pointChunks = [];
         let currentChunk = [];
         let totalPoints = 0;
-        let currentPoint = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
+        // 開始点は三角形の重心付近に設定（カオスゲームの収束を早めるため）
+        const INITIAL_POINT = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 };
+        let currentPoint = { ...INITIAL_POINT };
 
         // ビュー変換用変数
         let scale = 1;
@@ -418,7 +423,7 @@
             pointChunks = [];
             currentChunk = [];
             totalPoints = 0;
-            currentPoint = { x: Math.random() * WORLD_WIDTH, y: Math.random() * WORLD_HEIGHT };
+            currentPoint = { ...INITIAL_POINT };
             
             pointCountDisplay.textContent = '0';
             visibleCountDisplay.textContent = '0';
@@ -554,17 +559,18 @@
                         const touchX = center.x - rect.left;
                         const touchY = center.y - rect.top;
 
+                        // パン操作のデルタを先に計算
+                        const panDeltaX = center.x - lastTouchCenter.x;
+                        const panDeltaY = center.y - lastTouchCenter.y;
+
                         const worldX = (touchX - offsetX) / scale;
                         const worldY = (touchY - offsetY) / scale;
 
                         scale = newScale;
 
-                        offsetX = touchX - worldX * scale;
-                        offsetY = touchY - worldY * scale;
-
-                        // パン操作も同時に
-                        offsetX += center.x - lastTouchCenter.x;
-                        offsetY += center.y - lastTouchCenter.y;
+                        // ズーム後にオフセットを再計算し、パンデルタを加算
+                        offsetX = touchX - worldX * scale + panDeltaX;
+                        offsetY = touchY - worldY * scale + panDeltaY;
 
                         updateZoomDisplay();
                         draw();
