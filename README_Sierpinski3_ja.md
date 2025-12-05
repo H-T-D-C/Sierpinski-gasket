@@ -63,16 +63,17 @@
 ## スクリーンショット
 
 ### 初期状態
-![初期状態](https://github.com/user-attachments/assets/3471383a-df20-4119-875e-614847e20bc6)
+![初期状態](pictures/initial.png)
 
 ### 10,000点描画時
-![点描画時](https://github.com/user-attachments/assets/e3d2f62e-7686-4e07-aa76-b43df9e971e7)
+![点描画時](pictures/points_10000.png)
 
 ### ズームイン表示
-![ズーム](https://github.com/user-attachments/assets/8e53eeb4-1fc3-4c09-a6a7-29ff46050ba2)
+![ズーム](pictures/zoomed.png)
 
 ### 負荷軽減コントロール
-![負荷軽減](https://github.com/user-attachments/assets/1853e293-0928-4ca0-bebe-28dc953bf71a)
+![負荷軽減](pictures/redecution.png)
+(演算回数と表示中の点の総数が異なる)
 
 ## 使用方法
 

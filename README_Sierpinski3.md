@@ -63,16 +63,17 @@ This simple iterative process produces the famous fractal pattern.
 ## Screenshots
 
 ### Initial State
-![Initial State](https://github.com/user-attachments/assets/3471383a-df20-4119-875e-614847e20bc6)
+![Initial State](pictures/initial.png)
 
 ### With 10,000 Points
-![With Points](https://github.com/user-attachments/assets/e3d2f62e-7686-4e07-aa76-b43df9e971e7)
+![With Points](pictures/points_10000.png)
 
 ### Zoomed View
-![Zoomed](https://github.com/user-attachments/assets/8e53eeb4-1fc3-4c09-a6a7-29ff46050ba2)
+![Zoomed](pictures/zoomed.png)
 
 ### Load Reduction Control
-![Load Reduction](https://github.com/user-attachments/assets/1853e293-0928-4ca0-bebe-28dc953bf71a)
+![Load Reduction](pictures/redecution.png)
+The number of calculations differs from the total number of points displayed.
 
 ## Usage
 
