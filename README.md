@@ -1,3 +1,5 @@
+[English](README.md) | [日本語](README.ja.md) 
+
 # Sierpinski Triangle - Chaos Game (Advanced Version)
 
 An interactive web application that generates the Sierpinski Triangle using the Chaos Game algorithm, featuring Google Maps-like pan and zoom controls with performance optimizations.
