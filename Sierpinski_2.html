@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>シェルピンスキーの三角形 - Pan & Zoom</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #333;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        h1 { margin-bottom: 10px; font-size: 24px; }
+
+        .controls {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        input[type="number"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 80px;
+            text-align: right;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: background 0.2s;
+            color: white;
+        }
+
+        button#btn-add { background-color: #007bff; }
+        button#btn-add:hover { background-color: #0056b3; }
+
+        button#btn-reset { background-color: #6c757d; }
+        button#btn-reset:hover { background-color: #5a6268; }
+
+        .canvas-container {
+            width: 100%;
+            max-width: 800px;
+            flex-grow: 1; /* 残りの高さを埋める */
+            border: 1px solid #ccc;
+            background-color: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative; /* キャンバスの配置基準 */
+        }
+
+        canvas {
+            display: block;
+            cursor: grab; /* マウスカーソルを掴む手に */
+        }
+        canvas:active {
+            cursor: grabbing; /* ドラッグ中は掴んでいる手に */
+        }
+
+        .stats {
+            margin-top: 5px;
+            font-size: 12px;
+            color: #666;
+            text-align: right;
+            width: 100%;
+            max-width: 800px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>シェルピンスキーの三角形 (Pan & Zoom対応)</h1>
+
+    <div class="controls">
+        <label>
+            一度に追加する点の数:
+            <input type="number" id="iterations" value="5000" step="1000" min="1">
+        </label>
+        <button id="btn-add">演算＆描画</button>
+        <button id="btn-reset">リセット</button>
+    </div>
+
+    <div class="canvas-container" id="canvas-container">
+        <canvas id="myCanvas"></canvas>
+    </div>
+    
+    <div class="stats">
+        <p>マウスドラッグで移動、ホイールで拡大縮小できます。</p>
+        現在の点の総数: <span id="point-count">0</span>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('myCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvas-container');
+        const btnAdd = document.getElementById('btn-add');
+        const btnReset = document.getElementById('btn-reset');
+        const inputIterations = document.getElementById('iterations');
+        const pointCountDisplay = document.getElementById('point-count');
+
+        // --- 設定値 ---
+        // 論理的な空間サイズ（初期表示範囲）
+        const WORLD_WIDTH = 600;
+        const WORLD_HEIGHT = 520;
+        const POINT_SIZE = 1.5; // 描画する点の大きさ（拡大時も見やすく少し大きく）
+
+        // 三角形の頂点データ（論理座標）
+        const vertices = [
+            { x: WORLD_WIDTH / 2, y: 20 },         // 上
+            { x: 20, y: WORLD_HEIGHT - 20 },       // 左下
+            { x: WORLD_WIDTH - 20, y: WORLD_HEIGHT - 20 } // 右下
+        ];
+
+        // --- 状態管理変数 ---
+        let points = []; // 計算された全ての点の座標を保持する配列
+        let currentPoint = { x: WORLD_WIDTH / 2, y: WORLD_HEIGHT / 2 }; // カオスゲームの現在地
+
+        // ビュー変換用変数
+        let scale = 1;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        // マウス操作用フラグ
+        let isDragging = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+
+        // --- 初期化処理 ---
+        function resizeCanvas() {
+            // コンテナのサイズに合わせてキャンバスの解像度を調整
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            // 初期表示位置を中央に調整
+            resetView();
+            draw();
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function resetView() {
+            scale = Math.min(canvas.width / WORLD_WIDTH, canvas.height / WORLD_HEIGHT) * 0.9;
+            offsetX = (canvas.width - WORLD_WIDTH * scale) / 2;
+            offsetY = (canvas.height - WORLD_HEIGHT * scale) / 2;
+        }
+
+
+        // --- カオスゲームのロジック (データ計算のみ) ---
+        function calculatePoints(count) {
+            for (let i = 0; i < count; i++) {
+                const targetVertex = vertices[Math.floor(Math.random() * 3)];
+                currentPoint.x = (currentPoint.x + targetVertex.x) / 2;
+                currentPoint.y = (currentPoint.y + targetVertex.y) / 2;
+                // 計算結果を配列に保存
+                points.push({ ...currentPoint });
+            }
+            pointCountDisplay.textContent = points.length.toLocaleString();
+            draw(); // データ更新後に再描画
+        }
+
+        // --- 描画ループ ---
+        function draw() {
+            // 1. キャンバスをクリア
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.save(); // 現在の描画状態を保存
+
+            // 2. ビューの変換行列を適用 (移動 -> 拡大縮小)
+            ctx.translate(offsetX, offsetY);
+            ctx.scale(scale, scale);
+
+            // --- ここから論理座標系での描画 ---
+
+            // 頂点を描画（赤色）
+            ctx.fillStyle = '#ff4444';
+            vertices.forEach(v => {
+                ctx.beginPath();
+                // 拡大しても頂点マーカーがあまり大きくならないように補正
+                ctx.arc(v.x, v.y, 5 / scale, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // 計算済みの点をすべて描画（黒色）
+            ctx.fillStyle = '#000000';
+            // 描画パフォーマンス向上のため、beginPathを外に出す
+            ctx.beginPath();
+            for (let i = 0; i < points.length; i++) {
+                 // 拡大縮小しても点の見た目の大きさを一定に保つ工夫
+                 const drawSize = POINT_SIZE / scale;
+                 ctx.rect(points[i].x - drawSize/2, points[i].y - drawSize/2, drawSize, drawSize);
+            }
+            ctx.fill();
+            
+            // --- 論理座標系での描画終了 ---
+
+            ctx.restore(); // 描画状態を復元
+        }
+
+        // --- イベントリスナー (操作系) ---
+
+        // ボタン操作
+        btnAdd.addEventListener('click', () => {
+            const count = parseInt(inputIterations.value) || 0;
+            if (count > 0) {
+                calculatePoints(count);
+            }
+        });
+
+        btnReset.addEventListener('click', () => {
+            points = [];
+            currentPoint = { x: Math.random() * WORLD_WIDTH, y: Math.random() * WORLD_HEIGHT };
+            pointCountDisplay.textContent = "0";
+            resetView();
+            draw();
+        });
+
+        // マウス操作 (Pan & Zoom)
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const dx = e.clientX - lastMouseX;
+            const dy = e.clientY - lastMouseY;
+            offsetX += dx;
+            offsetY += dy;
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+            draw();
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault(); // ページのスクロールを防止
+
+            const scaleFactor = 1.1; // 1回あたりの拡大率
+            // ホイール回転方向判定
+            const direction = e.deltaY < 0 ? 1 : -1; // 上回転で拡大、下回転で縮小
+            const newScale = scale * (direction > 0 ? scaleFactor : 1 / scaleFactor);
+            
+            // 拡大縮小の制限（任意）
+            if (newScale < 0.1 || newScale > 100) return;
+
+            // マウス位置を中心基準にするためのオフセット補正計算
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left; // キャンバス上のマウスX座標
+            const mouseY = e.clientY - rect.top;  // キャンバス上のマウスY座標
+
+            // 現在のマウス位置が、論理空間のどこを指しているかを逆算
+            const worldX = (mouseX - offsetX) / scale;
+            const worldY = (mouseY - offsetY) / scale;
+
+            // 新しいスケールを適用
+            scale = newScale;
+
+            // さっき計算した論理位置が、再びマウス位置に来るようにオフセットを再計算
+            offsetX = mouseX - worldX * scale;
+            offsetY = mouseY - worldY * scale;
+
+            draw();
+        }, { passive: false });
+
+
+        // 開始処理
+        resizeCanvas(); // 初期サイズ設定と描画
+
+    </script>
+</body>
+</html>
